@@ -6,6 +6,8 @@ from todoapp import views
 urlpatterns = [
     url(r'^todolist/$', views.TaskList.as_view()),
     url(r'^todolist/(?P<pk>\d+)/$', views.TaskDetail.as_view()),
+    url(r'^csrf/$', views.csrf),
+    url(r'^currentuser/$', views.current_user),
 ]
 
 

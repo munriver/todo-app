@@ -20,4 +20,6 @@ from django.contrib import admin
 urlpatterns = [
     url('', include('todoapp.urls')),
     url(r'^admin/', admin.site.urls),
+
+    url(r'^api-auth/', include('rest_framework.urls')),
 ]

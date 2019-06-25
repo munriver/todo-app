@@ -1,6 +1,20 @@
 <template>
   <div class="hello">
     <h1>{{ msg }}</h1>
+
+    <p v-if="currentUser">
+      Logged in as <b>{{ currentUser }}</b>.
+      <a href="#" @click="logout">Logout</a>
+    </p>
+    <p v-else>
+      <label>Login: </label>
+      <input type="text" placeholder="username" v-model="uname">
+      <input type="password" placeholder="password" v-model="passwd">
+      <button @click="login">></button>
+      <br>
+    </p>
+
+    <br>
     <h2>Tasks</h2>
     <ul>
       <li v-for="task in taskList"
@@ -28,13 +42,6 @@
              @keyup.enter="addTask">
       <button class="addtaskbtn" @click="addTask">+</button>
     </p>
-
-    <br/>
-    <p>
-      <label>Basic Auth:</label>
-      <input type="text" placeholder="username" v-model="uname">
-      <input type="password" placeholder="password" v-model="passwd">
-    </p>
   </div>
 </template>
 
@@ -52,13 +59,20 @@ export default {
       newTask: '',
 
       uname: '',
-      passwd: ''
+      passwd: '',
+      csrfToken: '',
+      currentUser: ''
     }
   },
   methods: {
     getFromBackend () {
       const path = `${apiUrl}/todolist/`
-      axios.get(path)
+      this.getCurrentUser()
+      axios({
+        method: 'get',
+        url: path,
+        withCredentials: true
+      })
         .then(response => {
           this.taskList = response.data
         })
@@ -70,10 +84,17 @@ export default {
       const path = `${apiUrl}/todolist/${task.id}/`
       task.complete_status = !task.complete_status
       axios.put(path, task, {
+        withCredentials: true,
+        headers: {
+          'x-requested-with': 'XMLHttpRequest',
+          'x-csrftoken': this.csrfToken
+        }
+        /*
         auth: {
           username: this.uname,
           password: this.passwd
         }
+        */
       })
         .then(response => {
         })
@@ -84,12 +105,14 @@ export default {
     deleteTask (id) {
       const path = `${apiUrl}/todolist/${id}/`
       axios.delete(path, {
-        auth: {
-          username: this.uname,
-          password: this.passwd
+        withCredentials: true,
+        headers: {
+          'x-requested-with': 'XMLHttpRequest',
+          'x-csrftoken': this.csrfToken
         }
       })
         .then(response => {
+          this.getFromBackend()
         })
         .catch(error => {
           console.log(error)
@@ -106,9 +129,10 @@ export default {
       this.taskEditState = null
       const path = `${apiUrl}/todolist/${task.id}/`
       axios.put(path, task, {
-        auth: {
-          username: this.uname,
-          password: this.passwd
+        withCredentials: true,
+        headers: {
+          'x-requested-with': 'XMLHttpRequest',
+          'x-csrftoken': this.csrfToken
         }
       })
         .then(response => {
@@ -120,12 +144,88 @@ export default {
     addTask () {
       const path = `${apiUrl}/todolist/`
       axios.post(path, {'title': this.newTask}, {
-        auth: {
-          username: this.uname,
-          password: this.passwd
+        withCredentials: true,
+        headers: {
+          'x-requested-with': 'XMLHttpRequest',
+          'x-csrftoken': this.csrfToken
         }
       })
         .then(response => {
+          this.getFromBackend()
+        })
+        .catch(error => {
+          console.log(error)
+        })
+    },
+    login () {
+      const path = `${apiUrl}/api-auth/login/`
+      const fdata = new FormData()
+      fdata.append('username', this.uname)
+      fdata.append('password', this.passwd)
+      fdata.append('csrfmiddlewaretoken', this.csrfToken)
+      fdata.append('next', '/todolist/')
+      axios({
+        method: 'post',
+        url: path,
+        withCredentials: true,
+        data: fdata,
+        headers: {
+          'x-requested-with': 'XMLHttpRequest',
+          'x-csrftoken': this.csrfToken
+        },
+        validateStatus: (status) => {
+          return status >= 200 && status < 303
+        }
+      })
+        .then(response => {
+          this.getFromBackend()
+        })
+        .catch(error => {
+          console.log(error)
+        })
+    },
+    logout () {
+      const path = `${apiUrl}/api-auth/logout/`
+      axios.get(path, {
+        withCredentials: true
+      })
+        .then(response => {
+          this.getFromBackend()
+        })
+        .catch(error => {
+          console.log(error)
+        })
+    },
+    setTestCookie () {
+      const path = `${apiUrl}/cookietest/`
+      axios.get(path, {}, {
+        withCredentials: true
+      })
+        .then(response => {
+        })
+        .catch(error => {
+          console.log(error)
+        })
+    },
+    getCSRFToken () {
+      const path = `${apiUrl}/csrf/`
+      axios.get(path, {
+        withCredentials: true
+      })
+        .then(response => {
+          this.csrfToken = response.data.csrfToken
+        })
+        .catch(error => {
+          console.log(error)
+        })
+    },
+    getCurrentUser () {
+      const path = `${apiUrl}/currentuser/`
+      axios.get(path, {
+        withCredentials: true
+      })
+        .then(response => {
+          this.currentUser = response.data.username
         })
         .catch(error => {
           console.log(error)
@@ -134,6 +234,7 @@ export default {
   },
   created () {
     this.getFromBackend()
+    this.getCSRFToken()
   }
 }
 </script>
