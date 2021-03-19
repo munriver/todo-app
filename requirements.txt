@@ -1,7 +1,7 @@
 Django==1.11.21
 argparse==1.2.1
 django-cors-headers==3.0.2
-djangorestframework==3.9.4
+djangorestframework==3.11.2
 mysqlclient==1.4.2.post1
 pytz==2019.1
 wsgiref==0.1.2
